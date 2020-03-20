@@ -1,0 +1,31 @@
+name: iaml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7.*
+  # Scientific/numeric libraries
+  - numpy
+  - scipy
+  - scikit-learn
+  - scikit-image
+  - pandas
+  # Plotting
+  - matplotlib
+  - seaborn
+  # GPU / Automatic diff / optimisation
+  - pytorch=1.3.*
+  - numba
+  # OpenCV
+  - opencv=4.1.1
+  # Utils
+  - tqdm
+  # Jupyter
+  - jupyter
+  - jupyterlab
+  - ipywidgets
+  - qgrid
+  # Node
+  - nodejs
+  - pip
+  - pip:
+    - torchvision
