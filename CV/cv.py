@@ -2,33 +2,59 @@ import numpy as np
 import cv2
 from scipy import ndimage
 
-source_vid = cv2.VideoCapture('input.mp4')
+source_vid = cv2.VideoCapture('CV/input.mp4')
+read_success = False
 
 while True:
     _, frame = source_vid.read()
 
-    img_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_threshold = np.array([35, 50, 50])
-    upper_threshold = np.array([85, 255, 255])
-
-    img_thresholded = cv2.inRange(img_HSV, lower_threshold, upper_threshold)
-
-    img_eroded = cv2.erode(img_thresholded, np.ones((25, 25), np.uint8))
-    img_closed = cv2.dilate(img_eroded, np.ones((25, 25), np.uint8))
-
-    contours, _ = cv2.findContours(img_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # VIDEO FEED DID NOT START (SOURCE NOT FOUND)
+    if frame is None and read_success == False:
+        raise Exception("Source not found. Webcam input will be 0 or 1, for local files try full path to file if everything else fails.")
     
-    for c in contours:
-        approx = cv2.approxPolyDP(c, 4, True)
-        cv2.drawContours(frame, [approx], 0, (0, 200, 0), 2)
-        #center_of_mass = ndimage.measurements.center_of_mass(approx)
-        #cv2.circle(img=frame, center=center_of_mass, radius=20, color=(200, 0, 0))
+    # VIDEO FEED ENDED
+    elif frame is None and read_success == True:
+        source_vid.release()
+        cv2.destroyAllWindows()
 
-    cv2.imshow('res', frame)
+    # IN VIDEO FEED
+    else:
+        read_success = True
 
-    key = cv2.waitKey(1)
-    if key == 27:
-        break
+        # Convert into HSV color environment
+        img_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        # Define thresholds ([Hue<0; 180>, Saturation<0; 255>, Value<0; 255>])
+        lower_threshold = np.array([35, 50, 50])
+        upper_threshold = np.array([85, 255, 200])
+
+        # Apply threshold; returns a binary image
+        img_thresholded = cv2.inRange(img_HSV, lower_threshold, upper_threshold)
+
+        # Fiddles
+        img_eroded = cv2.erode(img_thresholded, np.ones((25, 25), np.uint8))
+        img_closed = cv2.dilate(img_eroded, np.ones((25, 25), np.uint8))
+
+        # Center of mass from binary image using scipy; returns y first for some reason
+        (My, Mx) = ndimage.measurements.center_of_mass(img_closed)
+
+        # Create contours from binary image and approximate to reduce noise, only for demonstration purposes tbh
+        contours, _ = cv2.findContours(img_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for c in contours:
+            approx = cv2.approxPolyDP(c, 4, True)
+            cv2.drawContours(frame, [approx], 0, (0, 200, 0), 2)
+
+        # Circle will fail if there's no center of mass and there will be no center of mass if there's no greens
+        try: cv2.circle(img=frame, center=(int(Mx), int(My)), radius=20, color=(255, 255, 0))
+        except ValueError: pass
+
+        cv2.imshow('res', frame)
+
+        # If Esc (might not work on Mac?)
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
 
 source_vid.release()
 cv2.destroyAllWindows()
