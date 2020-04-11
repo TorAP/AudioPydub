@@ -3,7 +3,7 @@ import sys, time
 import numpy as np
 import wave
 
-n = 5 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
+n = 10 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 chunk = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -19,7 +19,6 @@ stream = p.open(format = FORMAT,
                 input = True,
                 output = True,
                 frames_per_buffer = chunk)
-
 
 print ("* recording")
 
