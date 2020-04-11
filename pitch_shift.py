@@ -3,7 +3,7 @@ import sys, time
 import numpy as np
 import wave
 
-n = 5 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it.
+n = 5 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 chunk = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -32,7 +32,7 @@ while(time.time()-start < RECORD_SECONDS):
     # do real fast Fourier transform 
     data = np.fft.rfft(data)
     
-    # This does the shifting
+    # this does the shifting
     data2 = [0]*len(data)
     if n >= 0:
         data2[n:len(data)] = data[0:(len(data)-n)]
@@ -42,9 +42,8 @@ while(time.time()-start < RECORD_SECONDS):
         data2[(len(data)+n):len(data)] = data[0:-n]
     
     data = np.array(data2)
-    # Done shifting
     
-    # inverse transform to get back to temporal data
+    # inverse transform to get back to time domain
     data = np.fft.irfft(data)
     
     dataout = np.array(data, dtype='int16') 
