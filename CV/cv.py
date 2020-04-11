@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from scipy import ndimage
 
-source_vid = cv2.VideoCapture('CV/input.mp4')
+source_vid = cv2.VideoCapture('input.mp4')
 read_success = False
 
 while True:
