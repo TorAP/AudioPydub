@@ -1,10 +1,15 @@
-import urllib.request
 from pydub import AudioSegment
 from pydub.playback import play
-# Download an audio file
-urllib.request.urlretrieve("https://tinyurl.com/wx9amev", "metallic-drums.wav")
-# Load into PyDub
-loop = AudioSegment.from_wav("metallic-drums.wav")
+import numpy
 
-print(loop)
 
+raw_audio = AudioSegment.from_file("flute-c5-sines.wav", format="wav")
+
+raw_audio1 = AudioSegment.from_file("MEDIUM DAMPING ROOM E001 M2S.wav", format="wav")
+                                  
+
+raw_audio.set_sample_width(1)
+
+
+print(raw_audio1)
+play(raw_audio1)
