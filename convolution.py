@@ -15,6 +15,7 @@ import wave
 
 
 
+
 def convolution (waveFileOne,waveFileTwo):
 
     samplingFreq1,cleanTrumpetSignal1 = bolge.read(waveFileOne)
