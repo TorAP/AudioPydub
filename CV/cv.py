@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from scipy import ndimage
 
-source_vid = cv2.VideoCapture('CV/input.mp4')
+source_vid = cv2.VideoCapture(0) #Auto-closes the whole thing
 read_success = False
 
 height = source_vid.get(4)
@@ -12,7 +12,7 @@ square = (width/res[0], height/res[1])
 
 while True:
     _, frame = source_vid.read()
-
+del
     # VIDEO FEED DID NOT START (SOURCE NOT FOUND)
     if frame is None and read_success == False:
         raise Exception("Source not found. Webcam input will be 0 or 1, for local files try full path to file if everything else fails.")
@@ -68,6 +68,7 @@ while True:
 
         # If Esc (might not work on Mac?)
         key = cv2.waitKey(1)
+       
         if key == 27:
             break
 
