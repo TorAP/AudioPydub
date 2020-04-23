@@ -51,7 +51,7 @@ def callback(in_data, frame_count, time_info, flag):
     # do real fast Fourier transform to get frequency domain
     data = np.fft.rfft(data)
 
-    # shifting the array 
+    # shifting the array
     data2 = [0]*len(data)
     if n >= 0:
         data2[n:len(data)] = data[0:(len(data)-n)]
