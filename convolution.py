@@ -2,109 +2,115 @@ from pydub import AudioSegment
 from pydub.playback import play
 import numpy as np
 import scipy.signal as sps
-import scipy.io.wavfile as tryn
+import scipy.io.wavfile as bolge
 from scipy.io.wavfile import write
-import simpleaudio.functionchecks as fc
+#import simpleaudio.functionchecks as fc
 # AudioPlayer: https://simpleaudio.readthedocs.io/en/latest/simpleaudio.html
-import simpleaudio as sa
-import wave
+#import simpleaudio as sa
 from scipy import signal
+import pyaudio
+import sys, time
+import wave
+
+
 
 
 def convolution (waveFileOne,waveFileTwo):
 
-    samplingFreq1,cleanTrumpetSignal1 = tryn.read(waveFileOne)
+    samplingFreq1,cleanTrumpetSignal1 = bolge.read(waveFileOne)
 
-    samplingFreq2,cleanTrumpetSignal2 = tryn.read(waveFileTwo)
+    samplingFreq2,cleanTrumpetSignal2 = bolge.read(waveFileTwo)
 
 
-    ##Use both channels
-    # leftSpeakerSignal=cleanTrumpetSignal2[:,0]
-    # rightSpeakerSignal=cleanTrumpetSignal2[:,1]
+    ##Use both channels and convert to mono
+    
+    leftSpeakerSignal=cleanTrumpetSignal2[:,0]
+    rightSpeakerSignal=cleanTrumpetSignal2[:,1]
 
-    scaled = np.convolve(cleanTrumpetSignal1,cleanTrumpetSignal2)
+    cleanTrumpetSignal2 =leftSpeakerSignal+rightSpeakerSignal 
 
-    print(cleanTrumpetSignal1,cleanTrumpetSignal2)
 
-    write('test2.wav', 44100, scaled)
+    scaled = signal.oaconvolve(cleanTrumpetSignal1,cleanTrumpetSignal2)
+
+    # print(scaled,cleanTrumpetSignal1,cleanTrumpetSignal2)
+
+    #Save file as test4
+    write('test4.wav', 44100, scaled)
 
     return write
 
-convolution('IR.wav','pluck.wav')
+convolution('pluck.wav','MEDIUM DAMPING ROOM E001 M2S.wav')
 
 
-def convert(path):
+def callback(in_data, frame_count, time_info, flag):
+    # getting the data from the buffer in in_data
+    data = np.frombuffer(in_data, dtype=np.float32)
 
-    # audio_data - object with audio data (must support the buffer interface)
-    # num_channels (int) – the number of audio channels
-    # bytes_per_sample (int) – the number of bytes per single-channel sample
-    # sample_rate (int) – the sample rate in Hz
+    # do real fast Fourier transform to get frequency domain
+    data = np.fft.rfft(data)
 
-    wave_read = wave.open(path, 'rb')
-    audio_data = wave_read.readframes(wave_read.getnframes())
-    num_channels = wave_read.getnchannels()
-    bytes_per_sample = wave_read.getsampwidth()
-    sample_rate = wave_read.getframerate()
+    # shifting the array 
+    data2 = [0]*len(data)
+    if n >= 0:
+        data2[n:len(data)] = data[0:(len(data)-n)]
+        data2[0:n] = data[(len(data)-n):len(data)]
+    else:
+        data2[0:(len(data)+n)] = data[-n:len(data)]
+        data2[(len(data)+n):len(data)] = data[0:-n]
+    data = np.array(data2)
 
-    wave_obj = sa.WaveObject(audio_data, num_channels,
-                             bytes_per_sample, sample_rate)
+    # inverse transform to get back to time domain
+    data = np.fft.irfft(data)
 
-    return wave_obj
+    # convert back to chunks of data
+    out_data = np.array(data, dtype=np.float32)
+    
+    return out_data, pyaudio.paContinue
 
-
-def convolution(length1: sa.WaveObject, length2: sa.WaveObject):
-
-    # thefirst = len(length1.audio_data).astype(np.int16)
-    # thesecond = len(length2.audio_data).astype(np.int16)
-
-    # thesecond = np.int64(len(length2.audio_data))
-
-    # thesecond = (thesecond.astype(np.int32))
-
-    # thefirst = np.int64(len(length1.audio_data))
-
-    # thefirst = (thefirst.astype(np.int32))
-
-    audio_array = length1.audio_data.astype(np.int16)
+p = pyaudio.PyAudio()
 
 
-    print(length1.audio_data, length2.audio_data)
+n = -2 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
+chunk = 1024
+FORMAT = pyaudio.paInt16
+channels = 1
+RATE = 44100
+RECORD_SECONDS = 5
+seconds =3
+swidth = 2
 
-    final = signal.oaconvolve(thefirst, thesecond)
-
-    num_channels = length2.num_channels
-    bytes_per_sample = length2.bytes_per_sample
-    sample_rate = length2.sample_rate
-    convoluted = sa.WaveObject(
-        final, num_channels, bytes_per_sample, sample_rate)
-
-    return convoluted
-
-
-obj = convert('IR.wav')
-obj1 = convert('flute-c5-sines.wav')
+filename = "NewOutput.wav"
 
 
-# play_obj = obj.play()
-# play_obj.wait_done()
-
-# final = np.convolve(len(obj.audio_data),len(obj1.audio_data))
-
-obj2 = convolution(obj, obj1)
-
-play_obj2 = obj2.play()
-play_obj2.wait_done()
+print("Recording")
+stream = p.open(format=FORMAT,
+                channels=channels,
+                rate=RATE,
+                frames_per_buffer=chunk,
+                input=True,)
+                #stream_callback=callback)
 
 
-#audio_array = obj.astype(np.int16)
-# fc.LeftRightCheck.run()
+frames = []  # Initialize array to store frames
 
-# final = np.convolve(len(obj.audio_data),len(obj1.audio_data))
+# Store data in chunks for 3 seconds
 
-#final = final.astype(np.int16)
+for i in range(0, int(RATE / chunk * seconds)):
+    data = stream.read(chunk)
+    frames.append(data)
 
-# wave_obj1 = sa.WaveObject(final, num_channels, bytes_per_sample, sample_rate)
 
-# wave_obj1.play()
+# Stop and close the stream 
+stream.stop_stream()
+stream.close()
+# Terminate the PortAudio interface
+p.terminate()
 
-# obj.__new__()
+print('Finished recording')
+ 
+wf = wave.open(filename, 'wb')
+wf.setnchannels(channels)
+wf.setsampwidth(p.get_sample_size(FORMAT))
+wf.setframerate(RATE)
+wf.writeframes(b''.join(frames))
+wf.close()
