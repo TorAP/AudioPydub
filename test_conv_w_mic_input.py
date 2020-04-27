@@ -25,18 +25,28 @@ RECORD_SECONDS = 5
 swidth = 2
 
 p = pyaudio.PyAudio()
+b,a=signal.iirdesign(0.03,0.07,5,40)
+fulldata = np.array([])
+
+
+samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
+data1 = cleanTrumpetSignal1
+print(data1, len(data1))
+
 
 def callback(in_data, frame_count, time_info, flag):
 
-    samplingFreq1,cleanTrumpetSignal1 = bolge.read('IR.wav')
+    samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
 
 
-    data1 = np.frombuffer(cleanTrumpetSignal1, dtype=np.float32)
+    data1 = cleanTrumpetSignal1
 
     # getting the data from the buffer in in_data
     data = np.frombuffer(in_data, dtype=np.float32)
 
     data = np.convolve(data1,data)
+
+    print(data)
 
     # do real fast Fourier transform to get frequency domain
     data = np.fft.rfft(data)
@@ -56,15 +66,48 @@ def callback(in_data, frame_count, time_info, flag):
     return out_data, pyaudio.paContinue
 
 
+def callback1(in_data, frame_count, time_info, flag):
+    global b,a,fulldata #global variables for filter coefficients and array
+    audio_data = np.frombuffer(in_data, dtype=np.float32)
+
+    #filtered in realtime
+    audio_data = signal.filtfilt(b,a,audio_data,padlen=200).astype(np.float32).tostring()
+    # audio_data = np.convolve(audio_data,audio_data1)
+
+    fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
+    return (audio_data, pyaudio.paContinue)
+
+def callback2(in_data, frame_count, time_info, flag):
+    global b,a,fulldata #global variables for filter coefficients and array
+    audio_data = np.frombuffer(in_data, dtype=np.float32)
+
+     
+
+    #filtered in realtime
+    audio_data = signal.fftconvolve(audio_data,data1,mode="same")
+    # audio_data = np.convolve(audio_data,audio_data1)
+
+    fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
+    return (audio_data, pyaudio.paContinue)
+
 stream = p.open(format=FORMAT,
                 channels=CHANNELS,
                 rate=RATE,
                 output=True,
                 input=True,
-                stream_callback=callback)
+                frames_per_buffer = 4096,
+                stream_callback=callback2)
+
 
 stream.start_stream()
 print("Recording")
+
+
+
+while stream.is_active():
+    time.sleep(RECORD_SECONDS)
+    stream.stop_stream()
+    print("Recording stopped")
 
 stream.close()
 p.terminate()
