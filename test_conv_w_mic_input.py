@@ -11,6 +11,9 @@ from scipy import signal
 import pyaudio
 import sys, time
 import wave
+from scipy.signal import sosfiltfilt, butter
+
+
 
 
 from scipy.io.wavfile import _read_riff_chunk
@@ -18,7 +21,7 @@ from os.path import getsize
 
 n = -2 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 chunk = 1024
-FORMAT = pyaudio.paFloat32
+FORMAT = pyaudio.paInt32
 CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 5
@@ -30,7 +33,9 @@ fulldata = np.array([])
 
 
 samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
-data1 = cleanTrumpetSignal1
+data1 = np.array(cleanTrumpetSignal1)
+data1 = np.fft.rfft(data1)
+
 print(data1, len(data1))
 
 
@@ -68,10 +73,10 @@ def callback(in_data, frame_count, time_info, flag):
 
 def callback1(in_data, frame_count, time_info, flag):
     global b,a,fulldata #global variables for filter coefficients and array
-    audio_data = np.frombuffer(in_data, dtype=np.float32)
+    audio_data = np.frombuffer(in_data, dtype=np.int32)
 
     #filtered in realtime
-    audio_data = signal.filtfilt(b,a,audio_data,padlen=200).astype(np.float32).tostring()
+    audio_data = signal.filtfilt(b,a,audio_data,padlen=200).astype(np.int32).tostring()
     # audio_data = np.convolve(audio_data,audio_data1)
 
     fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
@@ -79,15 +84,26 @@ def callback1(in_data, frame_count, time_info, flag):
 
 def callback2(in_data, frame_count, time_info, flag):
     global b,a,fulldata #global variables for filter coefficients and array
-    audio_data = np.frombuffer(in_data, dtype=np.float32)
+    audio_data = np.frombuffer(in_data, dtype=np.int32)
 
-     
-
-    #filtered in realtime
-    audio_data = signal.fftconvolve(audio_data,data1,mode="same")
+    #filtered in fft
+    audio_data = np.fft.rfft(audio_data)
+    audio_data = audio_data*data1
+    audio_data =np.fft.ifft(audio_data)
     # audio_data = np.convolve(audio_data,audio_data1)
 
     fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
+    return (audio_data, pyaudio.paContinue)
+
+def callback3(in_data, frame_count, time_info, flag):
+    sos = butter(4, 0.125, output='sos')
+
+    audio_data = np.frombuffer(in_data, dtype=np.int32)
+
+    #filtered in fft
+    audio_data = sosfiltfilt(sos,audio_data)
+    # audio_data = np.convolve(audio_data,audio_data1)
+
     return (audio_data, pyaudio.paContinue)
 
 stream = p.open(format=FORMAT,
@@ -96,7 +112,7 @@ stream = p.open(format=FORMAT,
                 output=True,
                 input=True,
                 frames_per_buffer = 4096,
-                stream_callback=callback2)
+                stream_callback=callback3)
 
 
 stream.start_stream()
@@ -111,5 +127,3 @@ while stream.is_active():
 
 stream.close()
 p.terminate()
-
-
