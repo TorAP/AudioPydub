@@ -12,7 +12,7 @@ square = (width/res[0], height/res[1])
 
 while True:
     _, frame = source_vid.read()
-del
+
     # VIDEO FEED DID NOT START (SOURCE NOT FOUND)
     if frame is None and read_success == False:
         raise Exception("Source not found. Webcam input will be 0 or 1, for local files try full path to file if everything else fails.")
