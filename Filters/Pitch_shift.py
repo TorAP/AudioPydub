@@ -1,9 +1,11 @@
+from pynput import keyboard
+
 import pyaudio
 import sys, time
 import numpy as np
 import wave
 
-n = -2 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
+n = 0 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 chunk = 1024
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
@@ -12,37 +14,6 @@ RECORD_SECONDS = 5
 swidth = 2
 
 p = pyaudio.PyAudio()
-
-def combFilter(samples, delay_in_mili, decay_factor, sample_rate):
-    delay_size = int(delay_in_mili * sample_rate / 1000)
-    combFilter_samples = np.zeros(len(samples) + delay_size)
-
-    for i in range(len(samples)):
-        if i < len(samples) - delay_size:
-            combFilter_samples[i + delay_size] = samples[i + delay_size] + combFilter_samples[i] * decay_factor
-        else:
-            combFilter_samples[i + delay_size] = combFilter_samples[i] * decay_factor
-
-    return combFilter_samples
-
-
-def allpassFilter(samples, sample_rate):
-    delay_size = int(sample_rate / 10)
-    allpassFilter_samples = samples[:]
-    decay_factor = 0.131
-
-    # Algorithm:
-    for i in range(len(samples)):
-        if (i - delay_size >= 0):
-            allpassFilter_samples[i] += -decay_factor * allpassFilter_samples[i - delay_size]
-        if (i - delay_size >= 1):
-            allpassFilter_samples[i] += decay_factor * allpassFilter_samples[i + 20 - delay_size]
-
-    max_val = np.amax([abs(item) for item in allpassFilter_samples])
-    allpassFilter_samples = [item/max_val for item in allpassFilter_samples]
-
-    return allpassFilter_samples
-
 
 def callback(in_data, frame_count, time_info, flag):
     # getting the data from the buffer in in_data
@@ -66,16 +37,46 @@ def callback(in_data, frame_count, time_info, flag):
 
     # convert back to chunks of data
     out_data = np.array(data, dtype=np.float32)
-    
+
     return out_data, pyaudio.paContinue
 
-"""
+
+def combFilter(samples, delay_in_mili, decay_factor, sample_rate):
+    delay_size = int(delay_in_mili * sample_rate / 1000)
+    combFilter_samples = np.zeros(len(samples) + delay_size)
+
+    for i in range(len(samples)):
+        if i < len(samples) - delay_size:
+            combFilter_samples[i + delay_size] = samples[i + delay_size] + combFilter_samples[i] * decay_factor
+        else:
+            combFilter_samples[i + delay_size] = combFilter_samples[i] * decay_factor
+
+    return combFilter_samples
+
+def allpassFilter(samples, sample_rate):
+    delay_size = int(sample_rate / 10)
+    allpassFilter_samples = samples[:]
+    decay_factor = 0.131
+
+    # Algorithm:
+    for i in range(len(samples)):
+        if (i - delay_size >= 0):
+            allpassFilter_samples[i] += -decay_factor * allpassFilter_samples[i - delay_size]
+        if (i - delay_size >= 1):
+            allpassFilter_samples[i] += decay_factor * allpassFilter_samples[i + 20 - delay_size]
+
+    max_val = np.amax([abs(item) for item in allpassFilter_samples])
+    allpassFilter_samples = [item/max_val for item in allpassFilter_samples]
+
+    return allpassFilter_samples
+
+
 defaults = {
     "delay": 500,
     "decay": 0.5,
     "moist": 1}
 
-def callback(in_data, frame_count, time_info, flag):
+def callback1(in_data, frame_count, time_info, flag):
     # getting the data from the buffer in in_data
     data = np.frombuffer(in_data, dtype=float)
 
@@ -105,7 +106,7 @@ def callback(in_data, frame_count, time_info, flag):
     out_data = np.array(reverbed_samples, dtype=np.float32)
 
     return out_data, pyaudio.paContinue
-"""
+
 
 stream = p.open(format=FORMAT,
                 channels=CHANNELS,
@@ -114,10 +115,42 @@ stream = p.open(format=FORMAT,
                 input=True,
                 stream_callback=callback)
 
+
 stream.start_stream()
 print("Recording")
 
+def on_press(key):
+    """
+    try:
+        print('alphanumeric key {0} pressed'.format(
+            key.char))
+    except AttributeError:
+        print('special key {0} pressed'.format(
+            key))
+    """
+    if key == '1':
+        n = n - 1
+    if key == '2':
+        n = n + 1
+
+
+def on_release(key):
+    print('{0} released'.format(
+        key))
+    if key == keyboard.Key.esc:
+        # Stop listener
+        return False
+
+
+# Collect events until released
+with keyboard.Listener(
+        on_press=on_press,
+        on_release=on_release) as listener:
+    listener.join()
+
+
 while stream.is_active():
+    on_press(key)
     time.sleep(RECORD_SECONDS)
     stream.stop_stream()
     print("Recording stopped")
