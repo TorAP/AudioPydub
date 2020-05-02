@@ -32,11 +32,11 @@ b,a=signal.iirdesign(0.03,0.07,5,40)
 fulldata = np.array([])
 
 
-samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
-data1 = np.array(cleanTrumpetSignal1)
-data1 = np.fft.rfft(data1)
+#samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
+#data1 = np.array(cleanTrumpetSignal1)
+#data1 = np.fft.rfft(data1)
 
-print(data1, len(data1))
+#print(data1, len(data1))
 
 
 def callback(in_data, frame_count, time_info, flag):
