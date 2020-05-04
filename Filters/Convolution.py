@@ -24,12 +24,13 @@ chunk = 1024
 FORMAT = pyaudio.paInt32
 CHANNELS = 1
 RATE = 44100
-RECORD_SECONDS = 5
+RECORD_SECONDS = 10
 swidth = 2
 
 p = pyaudio.PyAudio()
 b,a=signal.iirdesign(0.03,0.07,5,40)
 fulldata = np.array([])
+print(b)
 
 
 #samplingFreq1,cleanTrumpetSignal1 = bolge.read('water drip.wav')
@@ -76,14 +77,16 @@ def callback1(in_data, frame_count, time_info, flag):
     audio_data = np.frombuffer(in_data, dtype=np.int32)
 
     #filtered in realtime
-    audio_data = signal.filtfilt(b,a,audio_data,padlen=200).astype(np.int32).tostring()
+    #audio_data = signal.filtfilt(b,a,audio_data,padlen=200, irlen=None).astype(np.int32).tostring()
     # audio_data = np.convolve(audio_data,audio_data1)
+
+    sos = butter(4, 0.125, output='sos')
+    audio_data = signal.sosfiltfilt(sos,audio_data).astype(np.int32).tostring()
 
     fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
     return (audio_data, pyaudio.paContinue)
 
 def callback2(in_data, frame_count, time_info, flag):
-    global b,a,fulldata #global variables for filter coefficients and array
     audio_data = np.frombuffer(in_data, dtype=np.int32)
 
     #filtered in fft
@@ -96,7 +99,7 @@ def callback2(in_data, frame_count, time_info, flag):
     return (audio_data, pyaudio.paContinue)
 
 def callback3(in_data, frame_count, time_info, flag):
-    sos = butter(4, 0.125, output='sos')
+    sos = butter(10, 0.125, output='sos')
 
     audio_data = np.frombuffer(in_data, dtype=np.int32)
 
@@ -112,7 +115,7 @@ stream = p.open(format=FORMAT,
                 output=True,
                 input=True,
                 frames_per_buffer = 4096,
-                stream_callback=callback3)
+                stream_callback=None)
 
 
 stream.start_stream()
