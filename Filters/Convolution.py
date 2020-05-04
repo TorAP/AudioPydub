@@ -98,7 +98,7 @@ def callback2(in_data, frame_count, time_info, flag):
     fulldata = np.append(fulldata,audio_data) #saves filtered data in an array
     return (audio_data, pyaudio.paContinue)
 
-def callback3(in_data, frame_count, time_info, flag):
+def callbackNone(in_data, frame_count, time_info, flag):
     sos = butter(10, 0.125, output='sos')
 
     audio_data = np.frombuffer(in_data, dtype=np.int32)
