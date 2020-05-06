@@ -2,6 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io.wavfile as wave
 import IPython.display as ipd
+import sounddevice as sd 
+
+def plainReverberator(inputSignal, delay, filterParam):
+    nData = np.size(inputSignal)
+    outputSignal = np.zeros(nData)
+    for n in np.arange(nData):
+        if n < delay:
+            outputSignal[n] = inputSignal[n]
+        else:
+            outputSignal[n] = inputSignal[n] + filterParam*outputSignal[n-delay]
+    return outputSignal
+
+
+def plainGainFromReverbTime(reverbTime, plainDelay, samplingFreq):
+    nDelays = np.size(plainDelay)
+    plainGains = np.zeros(nDelays)
+    for ii in np.arange(nDelays):
+        plainGains[ii] = 10**(-3*plainDelays[ii]/(reverbTime*samplingFreq))
+    return plainGains
+
 
 def allpassReverberator(inputSignal, delay, apParameter):
     nData = np.size(inputSignal)
@@ -28,6 +48,10 @@ def shroederReverb(inputSignal, mixingParams, plainDelays, plainGains, allpassDe
         tmpSignal = allpassReverberator(tmpSignal, allpassDelays[ii], apParams[ii])
     return tmpSignal
 
+
+samplingFreq, guitarSignal = wave.read('guitar.ff.sulB.B3.wav')
+guitarSignal = guitarSignal/2**15 # normalise
+
 mixingParams = np.array([0.3, 0.25, 0.25, 0,20])
 plainDelays = np.array([1553, 1613, 1493, 1153])
 allpassDelays = np.array([223, 443])
@@ -43,3 +67,5 @@ impulseResponse = guitarSignalWithReverb = \
 guitarSignalWithReverb = \
 shroederReverb(guitarSignal, mixingParams, plainDelays, plainGains, allpassDelays, apParams)
 
+sd.play(guitarSignalWithReverb, fs)
+status = sd.wait() 
