@@ -274,7 +274,8 @@ while True:
                 posY = My//square[1]
 
                 print(posX, posY)
-                n = int(posY-5)
+                n = -int(posY-5)
+                print(n)
 
                 # Create contours from binary image and approximate to reduce noise, only for demonstration purposes tbh
                 contours, _ = cv2.findContours(
