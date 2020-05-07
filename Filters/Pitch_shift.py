@@ -2,7 +2,6 @@ import pyaudio
 import sys, time
 import numpy as np
 import wave
-import cv2
 
 n = 2 # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 chunk = 1024
@@ -12,7 +11,7 @@ RATE = 44100
 RECORD_SECONDS = 5
 swidth = 2
 
-effect = False
+#effect = False
 
 p = pyaudio.PyAudio()
 
@@ -57,12 +56,19 @@ cv2.namedWindow({windowName})
 cv2.resizeWindow({windowName}, {width}, {height})
 cv2.CreateTrackbar({trackbarName}, {windowName}, {defaultValue}, {maxValue}, {onChangeFunction})
 cv2.getTrackbarPos({trackbarName}, {windowName})
-'''
+
 
 def nothing(): 
     pass
+'''
 
 def callback(in_data, frame_count, time_info, flag):
+    input = ' '
+    input = input()
+    if {input} == '1':
+        effet = True
+    else:
+        effect = False
     if effect == True:
         print('EFFECT 1')
         # getting the data from the buffer in in_data
