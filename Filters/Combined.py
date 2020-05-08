@@ -67,7 +67,7 @@ stream.start_stream()
 frame_width = 1280
 frame_height = 720
 
-source_vid = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Auto-closes the whole thing
+source_vid = cv2.VideoCapture(0)  # Auto-closes the whole thing
 source_vid.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
 source_vid.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 

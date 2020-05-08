@@ -115,7 +115,7 @@ stream = p.open(format=FORMAT,
                 output=True,
                 input=True,
                 frames_per_buffer = 4096,
-                stream_callback=None)
+                stream_callback=callbackNone)
 
 
 stream.start_stream()
