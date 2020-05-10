@@ -26,7 +26,7 @@ p = pyaudio.PyAudio()
 
 def callback(in_data, frame_count, time_info, flag):
     if effect:
-        audio_data = np.frombuffer(in_data, dtype=np.float32)
+        audio_data = np.frombuffer(in_data, dtype=np.float32)x
 
 
         return out_data, pyaudio.paContinue
