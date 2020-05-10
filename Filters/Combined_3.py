@@ -4,13 +4,14 @@ import cv2
 from scipy import ndimage
 import matplotlib.pyplot as plt
 
-from scipy import signal
-from scipy.signal import sosfiltfilt, butter
+
+from AudioLib.AudioProcessing import AudioProcessing
 
 import pyaudio
 import sys
 import time
 import wave
+
 
 
 #PyAudio Setup
@@ -24,32 +25,21 @@ RATE = 44100
 RECORD_SECONDS = 5
 swidth = 2
 
-
+b,a=signal.iirdesign(0.03,0.07,5,40)
 fulldata = np.array([])
 
 effect = False
 
 p = pyaudio.PyAudio()
-
 def callback(in_data, frame_count, time_info, flag):
     if effect:
+        output_audio = np.zeros(len(self.in_data))
+	    #output_delay = delay * self.RATE
 
-        if n >0:
-            b,a=signal.iirdesign([0.2, 0.5],[0.1, 0.6],5,40)
-        else:
-            b,a=signal.iirdesign([0.1, 0.6],[0.2, 0.5],5,40)
-            pass
+		for count, e in enumerate(self.in_data):
+			output_audio[count] = e + self.in_data[count - int(output_delay)]
 
-        b,a,fulldata #global variables for filter coefficients and array
-        audio_data = np.frombuffer(in_data, dtype=np.float32)
-
-        #filtered in realtime
-        audio_data = signal.filtfilt(b,a,audio_data,padlen=200).astype(np.float32)
-        # audio_data = np.convolve(audio_data,audio_data1)
-
-        # convert back to chunks of data
-
-        out_data = np.array(audio_data, dtype=np.float32)
+		self.in_data = output_audio
 
         return out_data, pyaudio.paContinue
     else:

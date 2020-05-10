@@ -67,5 +67,5 @@ impulseResponse = guitarSignalWithReverb = \
 guitarSignalWithReverb = \
 shroederReverb(guitarSignal, mixingParams, plainDelays, plainGains, allpassDelays, apParams)
 
-sd.play(guitarSignalWithReverb, fs)
+sd.play(guitarSignalWithReverb, samplingFreq)
 status = sd.wait() 
