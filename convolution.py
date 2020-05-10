@@ -40,7 +40,6 @@ def convolution (waveFileOne,waveFileTwo):
 
     return write
 
-convolution('pluck.wav','MEDIUM DAMPING ROOM E001 M2S.wav')
 
 
 def callback(in_data, frame_count, time_info, flag):
@@ -80,25 +79,19 @@ RECORD_SECONDS = 5
 seconds =3
 swidth = 2
 
-filename = "NewOutput.wav"
-
 
 print("Recording")
 stream = p.open(format=FORMAT,
                 channels=channels,
                 rate=RATE,
                 frames_per_buffer=chunk,
-                input=True,)
-                #stream_callback=callback)
+                input=True,
+                stream_callback=callback)
 
 
 frames = []  # Initialize array to store frames
 
 # Store data in chunks for 3 seconds
-
-for i in range(0, int(RATE / chunk * seconds)):
-    data = stream.read(chunk)
-    frames.append(data)
 
 
 # Stop and close the stream 
@@ -107,11 +100,3 @@ stream.close()
 # Terminate the PortAudio interface
 p.terminate()
 
-print('Finished recording')
- 
-wf = wave.open(filename, 'wb')
-wf.setnchannels(channels)
-wf.setsampwidth(p.get_sample_size(FORMAT))
-wf.setframerate(RATE)
-wf.writeframes(b''.join(frames))
-wf.close()
