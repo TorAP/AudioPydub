@@ -4,64 +4,11 @@ import cv2
 from scipy import ndimage
 import matplotlib.pyplot as plt
 
-from scipy import signal
-from scipy.signal import sosfiltfilt, butter
-
 import pyaudio
 import sys
 import time
 import wave
 
-
-def plainReverberator(inputSignal, delay, filterParam):
-    nData = np.size(inputSignal)
-    outputSignal = np.zeros(nData)
-    for n in np.arange(nData):
-        if n < delay:
-            outputSignal[n] = inputSignal[n]
-        else:
-            outputSignal[n] = inputSignal[n] + filterParam*outputSignal[n-delay]
-    return outputSignal
-
-
-def plainGainFromReverbTime(reverbTime, plainDelay, samplingFreq):
-    nDelays = np.size(plainDelay)
-    plainGains = np.zeros(nDelays)
-    for ii in np.arange(nDelays):
-        plainGains[ii] = 10**(-3*plainDelays[ii]/(reverbTime*samplingFreq))
-    return plainGains
-
-
-def allpassReverberator(inputSignal, delay, apParameter):
-    nData = np.size(inputSignal)
-    outputSignal = np.zeros(nData)
-    offset = 400
-
-    offset= RATE*offset*int(params.framerate/1000)
-
-    offset= params.sampwidth*offset_ms*int(params.framerate/1000)
-
-    for n in np.arange(nData):
-        if n < delay:
-            outputSignal[n] = inputSignal[n]
-        else:
-            outputSignal[n] = apParameter*inputSignal[n] + inputSignal[n-delay] - \
-                apParameter*outputSignal[n-delay]
-    return outputSignal
-
-def shroederReverb(inputSignal, mixingParams, plainDelays, plainGains, allpassDelays, apParams):
-    nData = np.size(inputSignal)
-    tmpSignal = np.zeros(nData)
-    # run the plain reverberators in parallel
-    nPlainReverberators = np.size(plainDelays)
-    for ii in np.arange(nPlainReverberators):
-        tmpSignal = tmpSignal + \
-            mixingParams[ii]*plainReverberator(inputSignal, plainDelays[ii], plainGains[ii])
-    # run the allpass reverberators in series
-    nAllpassReverberators = np.size(allpassDelays)
-    for ii in np.arange(nAllpassReverberators):
-        tmpSignal = allpassReverberator(tmpSignal, allpassDelays[ii], apParams[ii])
-    return tmpSignal
 #PyAudio Setup
 
 n = 0  # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
@@ -73,23 +20,13 @@ RATE = 44100
 RECORD_SECONDS = 5
 swidth = 2
 
-b,a=signal.iirdesign(0.03,0.07,5,40)
-fulldata = np.array([])
-
 effect = False
 
 p = pyaudio.PyAudio()
 
 def callback(in_data, frame_count, time_info, flag):
-
     if effect:
         audio_data = np.frombuffer(in_data, dtype=np.float32)
-        #fulldata = 
-        #int delayMilliseconds = 500
-
-        #for i in range audio_data:
-
-
 
 
         return out_data, pyaudio.paContinue
