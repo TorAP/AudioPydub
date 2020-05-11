@@ -25,8 +25,6 @@ effect = False
 p = pyaudio.PyAudio()
 
 
-
-
 def combFilter(inAudio, samplingFq, s_delay, decay):
     #Used for the echo
 
@@ -44,31 +42,30 @@ def combFilter(inAudio, samplingFq, s_delay, decay):
     return outAudio
 
 
-def addVibrato(inputSignal, modDepth, digModFreq, offset=0):
-    nData = np.size(inputSignal)
-    outputSignal = np.zeros(nData)
-    tmpSignal = np.zeros(nData)
-    for n in np.arange(nData):
-        # calculate delay
-        delay = offset + (modDepth/2)*(1-np.cos(digModFreq*n))
-        # calculate filter output
-        if n < delay:
-            outputSignal[n] = 0
-        else:
-            intDelay = np.int(np.floor(delay))
-            tmpSignal[n] = inputSignal[n-intDelay]
-            fractionalDelay = delay-intDelay
-            apParameter = (1-fractionalDelay)/(1+fractionalDelay)
-            outputSignal[n] = apParameter*tmpSignal[n] + \
-                tmpSignal[n-1]-apParameter*outputSignal[n-1]
-    return outputSignal
+def vibrato(inAudio, samplingFq, ms_strength, Hz_modFq, ms_offset=0):
+    outAudio = np.zeros(len(inAudio))
+    allPassAudio = np.zeros(len(inAudio))
+
+    for i in range(len(outAudio)):
+        ms_delay = (ms_strength / 2) * (1 - np.cos(Hz_modFq * i))
+
+        if i > ms_delay:
+            ms_intDelay = np.floor(ms_delay)
+            allPassAudio[i] = inAudio[i - ms_intDelay]
+            ms_fractionalDelay = ms_delay - ms_intDelay
+            b = (1 - ms_fractionalDelay) / (1 + ms_fractionalDelay)
+
+            outAudio[i] = b * allPassAudio[i] + allPassAudio[i-1] - b * outAudio[i-1]
+
+    return outAudio
+
 
 def callback(in_data, frame_count, time_info, flag):
     #if effect:
         '''
         # getting the data from the buffer in in_data
         data = np.frombuffer(in_data, dtype=np.float32)
-
+        #print(type(in_data))
         # do real fast Fourier transform to get frequency domain
         data = np.fft.rfft(data)
 
@@ -87,7 +84,7 @@ def callback(in_data, frame_count, time_info, flag):
 
         # convert back to chunks of data
         out_data = np.array(data, dtype=np.float32)
-
+        #print(type(out_data))
         return out_data, pyaudio.paContinue
         '''
         '''
@@ -116,30 +113,31 @@ def callback(in_data, frame_count, time_info, flag):
         out_data2 = np.array(out_data1, dtype=np.float32)
         return out_data2, pyaudio.paContinue
         '''
-
-        print(type(in_data))
+        '''
         data = np.frombuffer(in_data, dtype=np.float32)
         maxDelay = 0.001*RATE  # samples
         digModFreq = 2*np.pi*2/RATE  # rad/sample
         guitarSignalWithVibrato = addVibrato(data, maxDelay, digModFreq)
         out_data = np.array(guitarSignalWithVibrato, dtype=np.float32)
-        print(type(out_data))
 
-        return out_data
+        return out_data, pyaudio.paContinue
+        '''
         
-        '''
         data = np.frombuffer(in_data, dtype=np.float32)
-        amp_modA = 0.50
-        Hz_modFq = 6*np.pi
-        out_data1 = np.copy(data)
-        modSignal = 1 - amp_modA * np.cos(Hz_modFq / RATE * np.arange(len(out_data1)))
-        print(modSignal)
-        out_data1 *= modSignal
 
-        out_data2 = np.array(out_data1, dtype=np.float32)
+        ms_strength = 10 / 1000 * RATE
 
-        return out_data2
-        '''
+        Hz_modFq = 10 * np.pi / RATE
+
+        out_data1 = vibrato(inAudio=data,
+                samplingFq=RATE,
+                ms_strength=ms_strength,
+                Hz_modFq=Hz_modFq)
+
+        out_data2 = np.array(audio, dtype=np.float32)
+
+        return out_data2, pyaudio.paContinue
+        
     #else:
     #    return in_data, pyaudio.paContinue
 
@@ -364,9 +362,9 @@ while True:
                 posX = Mx//square[0]
                 posY = My//square[1]
 
-                print(posX, posY)
+                #print(posX, posY)
                 n = -int(posY-5)
-                print(n)
+                #print(n)
 
                 # Create contours from binary image and approximate to reduce noise, only for demonstration purposes tbh
                 contours, _ = cv2.findContours(
