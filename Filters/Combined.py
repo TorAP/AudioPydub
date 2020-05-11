@@ -12,7 +12,7 @@ import wave
 #PyAudio Setup
 
 n = 0  # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
-m = 0
+m = 1
 chunk = 1024
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
@@ -135,6 +135,7 @@ stream = p.open(format=FORMAT,
                 rate=RATE,
                 output=True,
                 input=True,
+                frames_per_buffer=44100,
                 stream_callback=callback)
 
 stream.start_stream()
