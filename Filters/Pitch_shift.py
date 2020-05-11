@@ -63,12 +63,6 @@ def nothing():
 '''
 
 def callback(in_data, frame_count, time_info, flag):
-    input = ' '
-    input = input()
-    if {input} == '1':
-        effet = True
-    else:
-        effect = False
     if effect == True:
         print('EFFECT 1')
         # getting the data from the buffer in in_data

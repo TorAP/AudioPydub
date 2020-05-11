@@ -24,8 +24,28 @@ effect = False
 
 p = pyaudio.PyAudio()
 
+
+
+
+def combFilter(inAudio, samplingFq, s_delay, decay):
+    #Used for the echo
+
+    nData = np.size(inAudio)
+
+    int_offset = int(s_delay * samplingFq)
+    outAudio = np.zeros(len(inAudio) + int_offset)
+
+    for i in np.arange(nData):
+        if i < len(inAudio) - int_offset:
+            outAudio[i + int_offset] = inAudio[i + int_offset] + outAudio[i] * decay
+        else:
+            outAudio[i + int_offset] = outAudio[i] * decay
+
+    return outAudio
+
 def callback(in_data, frame_count, time_info, flag):
-    if effect:
+    #if effect:
+        '''
         # getting the data from the buffer in in_data
         data = np.frombuffer(in_data, dtype=np.float32)
 
@@ -49,8 +69,47 @@ def callback(in_data, frame_count, time_info, flag):
         out_data = np.array(data, dtype=np.float32)
 
         return out_data, pyaudio.paContinue
-    else:
-        return in_data, pyaudio.paContinue
+        '''
+
+        '''
+        strength = 2
+        s_delay = 1.2
+        decay = 0.5
+        
+        data = np.frombuffer(in_data, dtype=np.float32)
+
+        CF_1 = combFilter(data, RATE, s_delay, decay)
+        CF_2 = combFilter(data, RATE, s_delay, decay)
+        CF_3 = combFilter(data, RATE, s_delay, decay)
+        CF_4 = combFilter(data, RATE, s_delay, decay)
+
+        CF_sample_set = [CF_1, CF_2, CF_3, CF_4]
+        CF_sample_maxSize = max([np.size(x) for x in CF_sample_set])
+
+        CF_1.resize(CF_sample_maxSize, refcheck=False)
+        CF_2.resize(CF_sample_maxSize, refcheck=False)
+        CF_3.resize(CF_sample_maxSize, refcheck=False)
+        CF_4.resize(CF_sample_maxSize, refcheck=False)
+
+        prolongedInAudio = np.copy(data)
+        prolongedInAudio.resize(CF_sample_maxSize, refcheck=False)
+        out_data1 = prolongedInAudio * (1 - strength) + strength * (CF_1 + CF_2 + CF_3 + CF_4)
+        out_data2 = np.array(out_data1, dtype=np.float32)
+        return out_data2, pyaudio.paContinue
+        '''
+        data = np.frombuffer(in_data, dtype=np.float32)
+        amp_modA = 0.50
+        Hz_modFq = 6*np.pi
+        out_data1 = np.copy(data)
+        modSignal = 1 - amp_modA * np.cos(Hz_modFq / RATE * np.arange(len(out_data1)))
+        print(modSignal)
+        out_data1 *= modSignal
+
+        out_data2 = np.array(out_data1, dtype=np.float32)
+
+        return out_data2
+    #else:
+    #    return in_data, pyaudio.paContinue
 
 
 stream = p.open(format=FORMAT,
