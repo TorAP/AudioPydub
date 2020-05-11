@@ -12,7 +12,7 @@ import wave
 #PyAudio Setup
 
 n = 0  # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
-
+m = 0
 chunk = 1024
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
@@ -50,7 +50,7 @@ def vibrato(inAudio, samplingFq, ms_strength, Hz_modFq, ms_offset=0):
         ms_delay = (ms_strength / 2) * (1 - np.cos(Hz_modFq * i))
 
         if i > ms_delay:
-            ms_intDelay = np.floor(ms_delay)
+            ms_intDelay = int(np.floor(ms_delay))
             allPassAudio[i] = inAudio[i - ms_intDelay]
             ms_fractionalDelay = ms_delay - ms_intDelay
             b = (1 - ms_fractionalDelay) / (1 + ms_fractionalDelay)
@@ -113,28 +113,16 @@ def callback(in_data, frame_count, time_info, flag):
         out_data2 = np.array(out_data1, dtype=np.float32)
         return out_data2, pyaudio.paContinue
         '''
-        '''
-        data = np.frombuffer(in_data, dtype=np.float32)
-        maxDelay = 0.001*RATE  # samples
-        digModFreq = 2*np.pi*2/RATE  # rad/sample
-        guitarSignalWithVibrato = addVibrato(data, maxDelay, digModFreq)
-        out_data = np.array(guitarSignalWithVibrato, dtype=np.float32)
-
-        return out_data, pyaudio.paContinue
-        '''
         
         data = np.frombuffer(in_data, dtype=np.float32)
 
-        ms_strength = 10 / 1000 * RATE
+        ms_strength = m*15 / 1000 * RATE
 
         Hz_modFq = 10 * np.pi / RATE
 
-        out_data1 = vibrato(inAudio=data,
-                samplingFq=RATE,
-                ms_strength=ms_strength,
-                Hz_modFq=Hz_modFq)
+        out_data1 = vibrato(inAudio=data, samplingFq=RATE, ms_strength=ms_strength, Hz_modFq=Hz_modFq)
 
-        out_data2 = np.array(audio, dtype=np.float32)
+        out_data2 = np.array(out_data1, dtype=np.float32)
 
         return out_data2, pyaudio.paContinue
         
@@ -364,6 +352,7 @@ while True:
 
                 #print(posX, posY)
                 n = -int(posY-5)
+                m = int(posX)
                 #print(n)
 
                 # Create contours from binary image and approximate to reduce noise, only for demonstration purposes tbh
