@@ -62,10 +62,8 @@ def vibrato(inAudio, samplingFq, ms_strength, Hz_modFq, ms_offset=0):
 
 def callback(in_data, frame_count, time_info, flag):
     #if effect:
-        print(m)
-        print(n)
 
-        if m >=2:
+        if m == 2:
             # getting the data from the buffer in in_data
             data = np.frombuffer(in_data, dtype=np.float32)
             #print(type(in_data))
@@ -89,8 +87,8 @@ def callback(in_data, frame_count, time_info, flag):
             out_data = np.array(data, dtype=np.float32)
             #print(type(out_data))
             return out_data, pyaudio.paContinue
-       
-        else:
+        
+        elif m == 0:
             
             data = np.frombuffer(in_data, dtype=np.float32)
 
@@ -104,7 +102,9 @@ def callback(in_data, frame_count, time_info, flag):
 
             return out_data2, pyaudio.paContinue
 
-            pass
+        else:
+            data = np.frombuffer(in_data, dtype=np.float32)
+            return data, pyaudio.paContinue
 
 
         
@@ -135,7 +135,7 @@ post_calibration = False
 
 height = source_vid.get(4)
 width = source_vid.get(3)
-res = (4, 11)
+res = (3, 11)
 square = (width/res[0], height/res[1])
 fps, frame_count = 1, 0
 
