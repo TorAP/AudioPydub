@@ -43,6 +43,26 @@ def combFilter(inAudio, samplingFq, s_delay, decay):
 
     return outAudio
 
+
+def addVibrato(inputSignal, modDepth, digModFreq, offset=0):
+    nData = np.size(inputSignal)
+    outputSignal = np.zeros(nData)
+    tmpSignal = np.zeros(nData)
+    for n in np.arange(nData):
+        # calculate delay
+        delay = offset + (modDepth/2)*(1-np.cos(digModFreq*n))
+        # calculate filter output
+        if n < delay:
+            outputSignal[n] = 0
+        else:
+            intDelay = np.int(np.floor(delay))
+            tmpSignal[n] = inputSignal[n-intDelay]
+            fractionalDelay = delay-intDelay
+            apParameter = (1-fractionalDelay)/(1+fractionalDelay)
+            outputSignal[n] = apParameter*tmpSignal[n] + \
+                tmpSignal[n-1]-apParameter*outputSignal[n-1]
+    return outputSignal
+
 def callback(in_data, frame_count, time_info, flag):
     #if effect:
         '''
@@ -70,10 +90,9 @@ def callback(in_data, frame_count, time_info, flag):
 
         return out_data, pyaudio.paContinue
         '''
-
         '''
-        strength = 2
-        s_delay = 1.2
+        strength = 4
+        s_delay = 2.5
         decay = 0.5
         
         data = np.frombuffer(in_data, dtype=np.float32)
@@ -97,6 +116,18 @@ def callback(in_data, frame_count, time_info, flag):
         out_data2 = np.array(out_data1, dtype=np.float32)
         return out_data2, pyaudio.paContinue
         '''
+
+        print(type(in_data))
+        data = np.frombuffer(in_data, dtype=np.float32)
+        maxDelay = 0.001*RATE  # samples
+        digModFreq = 2*np.pi*2/RATE  # rad/sample
+        guitarSignalWithVibrato = addVibrato(data, maxDelay, digModFreq)
+        out_data = np.array(guitarSignalWithVibrato, dtype=np.float32)
+        print(type(out_data))
+
+        return out_data
+        
+        '''
         data = np.frombuffer(in_data, dtype=np.float32)
         amp_modA = 0.50
         Hz_modFq = 6*np.pi
@@ -108,6 +139,7 @@ def callback(in_data, frame_count, time_info, flag):
         out_data2 = np.array(out_data1, dtype=np.float32)
 
         return out_data2
+        '''
     #else:
     #    return in_data, pyaudio.paContinue
 
