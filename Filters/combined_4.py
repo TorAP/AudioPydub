@@ -26,25 +26,33 @@ effect = False
 
 p = pyaudio.PyAudio()
 
-def delayFunc(a_data,delay_leng,sample_width):
+def delayFunc(a_data,delay_leng,sample_width):           
+    audio_data = np.frombuffer(in_data, dtype=np.float32)
+
+
+
 
 
     return out_data
 
 def callback(in_data, frame_count, time_info, flag):
     if effect:
-            audio_data = np.frombuffer(in_data, dtype=np.float32)
+            audio_data = np.copy(in_data, dtype=np.float32)
             print(audio_data.size)
-            offset = swidth*delay*(RATE//1000)
+            #offset = swidth*delay*(RATE//1000)
             print(offset)
 
             variable = []
             for i in range (offset):
                 variable.insert(i,0)
+            variable.tobytes()
+
 
             #beginning= b'\0'*offset
             print(len(variable))
             end = audio_data[:-offset]
+            end.tobytes()
+
             print(end.size)
             out_data =variable+end
 
