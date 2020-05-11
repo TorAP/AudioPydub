@@ -20,18 +20,39 @@ RATE = 44100
 RECORD_SECONDS = 5
 swidth = 2
 
+delay =10000
+
 effect = False
 
 p = pyaudio.PyAudio()
 
+def delayFunc(a_data,delay_leng,sample_width):
+
+
+    return out_data
+
 def callback(in_data, frame_count, time_info, flag):
     if effect:
-        audio_data = np.frombuffer(in_data, dtype=np.float32)x
+            audio_data = np.frombuffer(in_data, dtype=np.float32)
+            print(audio_data.size)
+            offset = swidth*delay*(RATE//1000)
+            print(offset)
 
+            variable = []
+            for i in range (offset):
+                variable.insert(i,0)
 
-        return out_data, pyaudio.paContinue
+            #beginning= b'\0'*offset
+            print(len(variable))
+            end = audio_data[:-offset]
+            print(end.size)
+            out_data =variable+end
+
+            print(out_data)
+
+            return out_data, pyaudio.paContinue
     else:
-        return in_data, pyaudio.paContinue
+            return in_data, pyaudio.paContinue
 
 
 stream = p.open(format=FORMAT,
