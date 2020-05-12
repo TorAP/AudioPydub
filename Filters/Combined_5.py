@@ -140,6 +140,9 @@ square = (width/res[0], height/res[1])
 fps, frame_count = 1, 0
 
 minHue, minSat, minVal, maxHue, maxSat, maxVal = 35, 75, 100, 85, 255, 255
+
+UI_x = 440
+UI_y = 620
 #endregion
 
 #region -- CALIBRATION WINDOW -------------------------------------------------
@@ -164,20 +167,6 @@ def rgb_to_hsv(clr):
         s = (df/mx)*100
     v = mx*100
     return [int(h/2), int(s*2.55), int(v*2.55)]
-
-
-def changeImage(val):
-    cv2.imshow('step', STEP_CODES[val])
-
-
-def breakHere(trackbar_position):
-    breakpoint()
-
-
-cv2.namedWindow("Calibration")
-cv2.resizeWindow("Calibration", 500, 80)
-cv2.createTrackbar("Step", "Calibration", 0, 10, changeImage)
-cv2.createTrackbar("Break", "Calibration", 0, 1, breakHere)
 #endregion
 
 while True:
@@ -335,8 +324,7 @@ while True:
                 #print(posX, posY)
                 n = -int(posY-5)
                 m = int(posX)
-                #print(n)
-
+                
                 # Create contours from binary image and approximate to reduce noise, only for demonstration purposes tbh
                 contours, _ = cv2.findContours(
                     img_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -348,13 +336,33 @@ while True:
                 # Circle will fail if there's no center of mass and there will be no center of mass if there's no greens
                 cv2.circle(img=frame, center=(int(Mx), int(My)),
                            radius=20, color=(255, 255, 0))
-                cv2.rectangle(img=frame,
-                              pt1=(int(posX*width/res[0]),
-                                   int(posY*height/res[1])),
-                              pt2=(
-                                  int((posX+1)*width/res[0]), int((posY+1)*height/res[1])),
-                              color=(255, 255, 0))
                 effect = True
+
+                if m == 2:
+                    UI_source = "CV/src/" + str(n) + ".png"
+                    
+                    cv2.rectangle(img=frame,
+                                  pt1=(int(posX*width/res[0]),
+                                       int(posY*height/res[1])),
+                                  pt2=(int((posX+1)*width/res[0]),
+                                       int((posY+1)*height/res[1])),
+                                  color=(248, 248, 248))
+                
+                else:
+                    cv2.rectangle(img=frame,
+                                  pt1=(int(posX*width/res[0]), 0),
+                                  pt2=(int((posX+1)*width/res[0]), frame_height),
+                                  color=(248, 248, 248))
+
+                    if m == 1:
+                        UI_source = "CV/src/no.png"
+
+                    else:
+                        UI_source = "CV/src/alien.png"
+
+                UI = cv2.imread(UI_source)
+                frame[UI_y : UI_y+UI.shape[0],
+                      UI_x : UI_x+UI.shape[1]] = UI
 
             except ValueError:
                 print("No green objects found.")
