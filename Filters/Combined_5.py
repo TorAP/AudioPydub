@@ -1,20 +1,15 @@
 #region -- SETUP --------------------------------------------------------------
-import numpy as np
 import cv2
+from numpy import size, zeros, arange, cos, floor, frombuffer, float32, fft, ones, array, uint8, unique, argsort, cumsum, hstack, pi
 from scipy import ndimage
-import matplotlib.pyplot as plt
-
-import pyaudio
-import sys
-import time
-import wave
+from pyaudio import PyAudio, paFloat32, paContinue
 
 #PyAudio Setup
 
 n = 0  # this is how the pitch should change, positive integers increase the frequency, negative integers decrease it
 m = 0
 chunk = 1024
-FORMAT = pyaudio.paFloat32
+FORMAT = paFloat32
 CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 5
@@ -22,18 +17,18 @@ swidth = 2
 
 effect = False
 
-p = pyaudio.PyAudio()
+p = PyAudio()
 
 
 def combFilter(inAudio, samplingFq, s_delay, decay):
     #Used for the echo
 
-    nData = np.size(inAudio)
+    nData = size(inAudio)
 
     int_offset = int(s_delay * samplingFq)
-    outAudio = np.zeros(len(inAudio) + int_offset)
+    outAudio = zeros(len(inAudio) + int_offset)
 
-    for i in np.arange(nData):
+    for i in arange(nData):
         if i < len(inAudio) - int_offset:
             outAudio[i + int_offset] = inAudio[i + int_offset] + outAudio[i] * decay
         else:
@@ -43,14 +38,14 @@ def combFilter(inAudio, samplingFq, s_delay, decay):
 
 
 def vibrato(inAudio, samplingFq, ms_strength, Hz_modFq, ms_offset=0):
-    outAudio = np.zeros(len(inAudio))
-    allPassAudio = np.zeros(len(inAudio))
+    outAudio = zeros(len(inAudio))
+    allPassAudio = zeros(len(inAudio))
 
     for i in range(len(outAudio)):
-        ms_delay = (ms_strength / 2) * (1 - np.cos(Hz_modFq * i))
+        ms_delay = (ms_strength / 2) * (1 - cos(Hz_modFq * i))
 
         if i > ms_delay:
-            ms_intDelay = int(np.floor(ms_delay))
+            ms_intDelay = int(floor(ms_delay))
             allPassAudio[i] = inAudio[i - ms_intDelay]
             ms_fractionalDelay = ms_delay - ms_intDelay
             b = (1 - ms_fractionalDelay) / (1 + ms_fractionalDelay)
@@ -65,10 +60,10 @@ def callback(in_data, frame_count, time_info, flag):
 
         if m == 2:
             # getting the data from the buffer in in_data
-            data = np.frombuffer(in_data, dtype=np.float32)
+            data = frombuffer(in_data, dtype=float32)
             #print(type(in_data))
             # do real fast Fourier transform to get frequency domain
-            data = np.fft.rfft(data)
+            data = fft.rfft(data)
 
             # shifting the array
             data2 = [0]*len(data)
@@ -78,38 +73,38 @@ def callback(in_data, frame_count, time_info, flag):
             else:
                 data2[0:(len(data)+n)] = data[-n:len(data)]
                 data2[(len(data)+n):len(data)] = data[0:-n]
-            data = np.array(data2)
+            data = array(data2)
 
             # inverse transform to get back to time domain
-            data = np.fft.irfft(data)
+            data = fft.irfft(data)
 
             # convert back to chunks of data
-            out_data = np.array(data, dtype=np.float32)
+            out_data = array(data, dtype=float32)
             #print(type(out_data))
-            return out_data, pyaudio.paContinue
+            return out_data, paContinue
         
         elif m == 0:
             
-            data = np.frombuffer(in_data, dtype=np.float32)
+            data = frombuffer(in_data, dtype=float32)
 
             ms_strength = 15 / 1000 * RATE
 
-            Hz_modFq = 10 * np.pi / RATE
+            Hz_modFq = 10 * pi / RATE
 
             out_data1 = vibrato(inAudio=data, samplingFq=RATE, ms_strength=ms_strength, Hz_modFq=Hz_modFq)
 
-            out_data2 = np.array(out_data1, dtype=np.float32)
+            out_data2 = array(out_data1, dtype=float32)
 
-            return out_data2, pyaudio.paContinue
+            return out_data2, paContinue
 
         else:
-            data = np.frombuffer(in_data, dtype=np.float32)
-            return data, pyaudio.paContinue
+            data = frombuffer(in_data, dtype=float32)
+            return data, paContinue
 
 
         
     #else:
-    #    return in_data, pyaudio.paContinue
+    #    return in_data, paContinue
 
 
 stream = p.open(format=FORMAT,
@@ -139,7 +134,7 @@ res = (3, 11)
 square = (width/res[0], height/res[1])
 fps, frame_count = 1, 0
 
-minHue, minSat, minVal, maxHue, maxSat, maxVal = 35, 75, 100, 85, 255, 255
+minHue, minSat, minVal, maxHue, maxSat, maxVal = 35, 75, 100, 95, 255, 255
 
 UI_x = 440
 UI_y = 620
@@ -187,110 +182,120 @@ while True:
         frame = cv2.flip(frame, 1)
         if not post_calibration:
             #region -- CALIBRATION --------------------------------------------
-            Rx, Ry, Rw, Rh = cv2.selectROI(
-                'Select the object', frame, True, False)
-            ROI = frame[Ry:Ry+Rh, Rx:Rx+Rw]
-            mask = np.zeros(ROI.shape, np.uint8)
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY, cv2.CV_8UC1)
+            calibInfo = cv2.imread("CV/src/calib.png")
+            cv2.imshow("Mark the object", calibInfo)
+            cv2.waitKey()
 
-            #region initial image processing
-            frame_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, cv2.CV_8UC3)
-            ROI_HSV = cv2.cvtColor(ROI, cv2.COLOR_BGR2HSV, cv2.CV_8UC3)
-
-            lower_threshold = np.array([35, 75, 100])
-            upper_threshold = np.array([85, 255, 225])
-
-            frame_thresholded = cv2.inRange(
-                ROI_HSV, lower_threshold, upper_threshold)
-
-            frame_dilated = cv2.dilate(
-                frame_thresholded, np.ones((25, 25), np.uint8))
-            frame_closed = cv2.erode(
-                frame_dilated, np.ones((25, 25), np.uint8))
-            #endregion
-
-            #region find dominant colors
-            contours, _ = cv2.findContours(
-                frame_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-            # If there's no contours, continue to the next while iteration without setting post_calibration to True
             try:
-                biggestShape = max([cv2.contourArea(c) for c in contours])
-            except ValueError:
-                print("No green objects found, calibration prompt will run again.")
-                continue
+                Rx, Ry, Rw, Rh = cv2.selectROI(
+                    'Mark the object', frame, True, False)
+                ROI = frame[Ry:Ry+Rh, Rx:Rx+Rw]
+                mask = zeros(ROI.shape, uint8)
+                mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY, cv2.CV_8UC1)
 
-            for c in contours:
-                if cv2.contourArea(c) == biggestShape:
-                    target = c
-                    break
+                #region initial image processing
+                frame_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, cv2.CV_8UC3)
+                ROI_HSV = cv2.cvtColor(ROI, cv2.COLOR_BGR2HSV, cv2.CV_8UC3)
 
-            approx = cv2.approxPolyDP(target, 4, True)
-            cv2.drawContours(mask, [approx], 0, (255, 255, 255), -1)
-            x, y, w, h = cv2.boundingRect(approx)
+                lower_threshold = array([35, 75, 100])
+                upper_threshold = array([95, 255, 225])
 
-            frame_targetted = cv2.bitwise_and(ROI, ROI, mask=mask)
-            frame_ROI = frame_targetted[y:y+h, x:x+w]
+                frame_thresholded = cv2.inRange(
+                    ROI_HSV, lower_threshold, upper_threshold)
 
-            pixels = np.float32(frame_ROI.reshape(-1, 3))
+                frame_dilated = cv2.dilate(
+                    frame_thresholded, ones((25, 25), uint8))
+                frame_closed = cv2.erode(
+                    frame_dilated, ones((25, 25), uint8))
+                #endregion
 
-            n_colors = 10
-            criteria = (cv2.TERM_CRITERIA_EPS +
-                        cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
-            flags = cv2.KMEANS_RANDOM_CENTERS
+                #region find dominant colors
+                contours, _ = cv2.findContours(
+                    frame_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            _, labels, palette = cv2.kmeans(
-                pixels, n_colors, None, criteria, 10, flags)
-            _, counts = np.unique(labels, return_counts=True)
-            indices = np.argsort(counts)[::-1]
+                # If there's no contours, continue to the next while iteration without setting post_calibration to True
+                try:
+                    biggestShape = max([cv2.contourArea(c) for c in contours])
+                except ValueError:
+                    print("No green objects found, calibration prompt will run again.")
+                    continue
 
-            freqs = np.cumsum(np.hstack([[0], counts[indices]/counts.sum()]))
-            rows = np.int_(frame_ROI.shape[0]*freqs)
+                for c in contours:
+                    if cv2.contourArea(c) == biggestShape:
+                        target = c
+                        break
 
-            dom_patch = np.zeros(shape=frame_ROI.shape, dtype=np.uint8)
-            for i in range(len(rows) - 1):
-                dom_patch[rows[i]:rows[i + 1], :,
-                          :] += np.uint8(palette[indices[i]])
+                approx = cv2.approxPolyDP(target, 4, True)
+                cv2.drawContours(mask, [approx], 0, (255, 255, 255), -1)
+                x, y, w, h = cv2.boundingRect(approx)
 
-            cv2.imshow("Colors", dom_patch)
+                frame_targetted = cv2.bitwise_and(ROI, ROI, mask=mask)
+                frame_ROI = frame_targetted[y:y+h, x:x+w]
 
-            rgbColors = [np.uint8(palette[item]) for item in indices if np.uint8(
-                palette[item]).all() != np.array([0, 0, 0]).all()]
-            hsvColors = [rgb_to_hsv(item) for item in rgbColors]
-            #endregion
+                pixels = float32(frame_ROI.reshape(-1, 3))
 
-            #region apply threshold
-            hues = [item[0] for item in hsvColors]
-            sats = [item[1] for item in hsvColors]
-            vals = [item[2] for item in hsvColors]
+                n_colors = 10
+                criteria = (cv2.TERM_CRITERIA_EPS +
+                            cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
+                flags = cv2.KMEANS_RANDOM_CENTERS
 
-            tolerance = 0
-            minHue = min(hues) - tolerance if min(hues) - \
-                tolerance >= 35 else 35
-            minSat = min(sats) - tolerance if min(sats) - \
-                tolerance >= 75 else 75
-            minVal = min(vals) - tolerance if min(vals) - \
-                tolerance >= 100 else 100
-            maxHue = max(hues) + tolerance if max(hues) + \
-                tolerance <= 85 else 85
-            maxSat = max(sats) + tolerance if max(sats) + \
-                tolerance <= 255 else 255
-            maxVal = max(vals) + tolerance if max(vals) + \
-                tolerance <= 255 else 255
+                _, labels, palette = cv2.kmeans(
+                    pixels, n_colors, None, criteria, 10, flags)
+                _, counts = unique(labels, return_counts=True)
+                indices = argsort(counts)[::-1]
 
-            lower_threshold = np.array([minHue, minSat, minVal])
-            upper_threshold = np.array([maxHue, maxSat, maxVal])
+                """freqs = cumsum(hstack([[0], counts[indices]/counts.sum()]))
+                rows = int_(frame_ROI.shape[0]*freqs)
 
-            frame_2_thresholded = cv2.inRange(
-                frame_HSV, lower_threshold, upper_threshold)
-            frame_2_dilated = cv2.dilate(
-                frame_2_thresholded, np.ones((25, 25), np.uint8))
-            frame_2_closed = cv2.erode(
-                frame_2_dilated, np.ones((25, 25), np.uint8))
-            #endregion
+                dom_patch = zeros(shape=frame_ROI.shape, dtype=uint8)
+                for i in range(len(rows) - 1):
+                    dom_patch[rows[i]:rows[i + 1], :,
+                            :] += uint8(palette[indices[i]])
 
-            cv2.destroyWindow('Select the object')
-            post_calibration = True
+                cv2.imshow("Colors", dom_patch)"""
+
+                rgbColors = [uint8(palette[item]) for item in indices if uint8(
+                    palette[item]).all() != array([0, 0, 0]).all()]
+                hsvColors = [rgb_to_hsv(item) for item in rgbColors]
+                #endregion
+
+                #region apply threshold
+                hues = [item[0] for item in hsvColors]
+                sats = [item[1] for item in hsvColors]
+                vals = [item[2] for item in hsvColors]
+
+                tolerance = 0
+                minHue = min(hues) - tolerance if min(hues) - \
+                    tolerance >= 35 else 35
+                minSat = min(sats) - tolerance if min(sats) - \
+                    tolerance >= 75 else 75
+                minVal = min(vals) - tolerance if min(vals) - \
+                    tolerance >= 100 else 100
+                maxHue = max(hues) + tolerance if max(hues) + \
+                    tolerance <= 85 else 85
+                maxSat = max(sats) + tolerance if max(sats) + \
+                    tolerance <= 255 else 255
+                maxVal = max(vals) + tolerance if max(vals) + \
+                    tolerance <= 255 else 255
+
+                lower_threshold = array([minHue, minSat, minVal])
+                upper_threshold = array([maxHue, maxSat, maxVal])
+
+                frame_2_thresholded = cv2.inRange(
+                    frame_HSV, lower_threshold, upper_threshold)
+                frame_2_dilated = cv2.dilate(
+                    frame_2_thresholded, ones((25, 25), uint8))
+                frame_2_closed = cv2.erode(
+                    frame_2_dilated, ones((25, 25), uint8))
+                #endregion
+
+            except Exception as e:
+                print("Calibration failed, set to default values.")
+                minHue, minSat, minVal, maxHue, maxSat, maxVal = 35, 75, 100, 85, 255, 255
+            
+            finally:
+                cv2.destroyWindow('Mark the object')
+                post_calibration = True
             #endregion
 
         else:
@@ -301,8 +306,8 @@ while True:
             img_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # Define thresholds ([Hue<0; 180>, Saturation<0; 255>, Value<0; 255>])
-            lower_threshold = np.array([minHue, minSat, minVal])
-            upper_threshold = np.array([maxHue, maxSat, maxVal])
+            lower_threshold = array([minHue, minSat, minVal])
+            upper_threshold = array([maxHue, maxSat, maxVal])
 
             # Apply threshold; returns a binary image
             img_thresholded = cv2.inRange(
@@ -310,8 +315,8 @@ while True:
 
             # Fiddles
             img_dilated = cv2.dilate(
-                img_thresholded, np.ones((25, 25), np.uint8))
-            img_closed = cv2.erode(img_dilated, np.ones((25, 25), np.uint8))
+                img_thresholded, ones((25, 25), uint8))
+            img_closed = cv2.erode(img_dilated, ones((25, 25), uint8))
             #endregion
 
             #region -- IMAGE ANALYSIS -----------------------------------------
@@ -365,7 +370,9 @@ while True:
                       UI_x : UI_x+UI.shape[1]] = UI
 
             except ValueError:
-                print("No green objects found.")
+                UI = cv2.imread("CV/src/warning.png")
+                frame[UI_y - 37 : UI_y + UI.shape[0] - 37,
+                      UI_x : UI_x + UI.shape[1]] = UI
                 effect = False
             #endregion
 
@@ -375,7 +382,7 @@ while True:
 
         key = cv2.waitKey(1)
 
-        # If Esc (might not work on Mac?)
+        # If Esc
         if key == 27:
             break
 
@@ -386,6 +393,10 @@ while True:
         # If Cc -> recalibrate
         elif key in (67, 99):
             post_calibration = False
+
+        # If Dd -> defaults
+        elif key in (68, 100):
+            minHue, minSat, minVal, maxHue, maxSat, maxVal = 35, 75, 100, 85, 255, 255
 
     frame_count += 1
 source_vid.release()
